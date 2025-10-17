@@ -1,0 +1,16 @@
+FROM python:3.9-slim
+
+RUN pip install --no-cache-dir bentoml
+# Not: bentoml'i spesifik bir versiyona sabitlemek iyi bir pratiktir
+# RUN pip install --no-cache-dir bentoml==1.2.18 
+
+RUN pip install mlflow "psycopg2-binary>=2.9"
+
+# Çalışma dizinini, kodumuzun olduğu yer olarak ayarlıyoruz.
+# BU SATIRI YENİ EKLEDİK
+WORKDIR /home/bentoml
+
+# Artık /home/bentoml içinde olduğumuz için hedefi sadece '.' olarak belirtebiliriz.
+COPY src/model_serving/service.py .
+
+ENTRYPOINT [ "bentoml", "serve", "service:VitalWatchService", "--host", "0.0.0.0", "--port", "3000" ]

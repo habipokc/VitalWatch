@@ -1,3 +1,4 @@
+#C:\90\VitalWatch\docker-compose.yaml
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -256,6 +257,32 @@ services:
     command: >
       mlflow server --host 0.0.0.0 --port 5000 --serve-artifacts
 
+  # ===== PROMETHEUS GÖZLEMCİSİ =========================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090" # Prometheus'un arayüzüne bu porttan erişeceğiz
+    volumes:
+      # Prometheus'a ayar dosyasını bu yoldan veriyoruz
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      - bentoml
+
+  # ===== GRAFANA GÖSTERGE PANELİ ========================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000" # Grafana'nın arayüzüne bu porttan erişeceğiz (3000 dolu)
+    volumes:
+      # Grafana'nın oluşturduğu panoları kaybetmemek için kalıcı hale getiriyoruz
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
   airflow-cli:
     <<: *airflow-common
     profiles:
@@ -268,6 +295,23 @@ services:
       - bash
       - -c
       - airflow
+
+  # ===== YENİ BENTOML SERVİSİNİ BURAYA EKLE ==============================================
+  bentoml:
+    build:
+      context: .
+      dockerfile: ./src/model_serving/Dockerfile.bentoml
+    environment:
+      # MLflow'a Docker network'ü üzerinden nasıl ulaşacağını söylüyoruz
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    ports:
+      # Dışarıdan 3000 portu ile servise erişeceğiz
+      - "3000:3000"
+    volumes:
+      # Servisin MLflow'dan indirdiği modelleri kalıcı hale getirmek için
+      - bentoml-data:/home/bentoml/bentoml
+    depends_on:
+      - mlflow
 
   # You can enable flower by adding "--profile flower" option e.g. docker-compose --profile flower up
   # or by explicitly targeted on the command line e.g. docker-compose up flower.
@@ -293,3 +337,5 @@ services:
 
 volumes:
   postgres-db-volume:
+  bentoml-data:
+  grafana-data:

@@ -59,7 +59,11 @@ def train_model():
         mlflow.log_metric("roc_auc", roc_auc)
         mlflow.log_metric("pr_auc", pr_auc)
 
-        mlflow.sklearn.log_model(model, "isolation_forest_model")
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="isolation_forest_model",
+            registered_model_name="isolation_forest_model",
+        )
 
         print("Model ve metrikler MLflow'a başarıyla kaydedildi.")
 
