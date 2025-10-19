@@ -181,6 +181,5 @@ cython_debug/
 .cursorindexingignore
 
 # data
-/data
 /data/raw/
 /data/processed
