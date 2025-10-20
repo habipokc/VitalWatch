@@ -180,6 +180,13 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# data
-/data/raw/
-/data/processed
+# ========================
+# Generated Data Artifacts
+# ========================
+# Ignore all files in the data directories...
+/data/raw/*
+/data/processed/*
+
+# ...but DO NOT ignore the .gitkeep files.
+!/data/raw/.gitkeep
+!/data/processed/.gitkeep
