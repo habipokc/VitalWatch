@@ -1,13 +1,7 @@
-# Genel ayarlar: Prometheus'un hedefleri ne sıklıkla kontrol edeceği
 global:
-  scrape_interval: 15s # Her 15 saniyede bir metrikleri topla
+  scrape_interval: 15s
 
-# Metrikleri toplanacak hedeflerin (endpoints) listesi
 scrape_configs:
-  # 'bentoml_service' adında bir iş (job) tanımlıyoruz
-  - job_name: 'bentoml_service'
-    # Bu iş için hedeflerin listesi
+  - job_name: 'bentoml_services'
     static_configs:
-      # BentoML servisimiz, Docker ağında 'bentoml' adıyla ve 3000 portunda
-      # çalışıyor. BentoML, bu adreste /metrics endpoint'ini otomatik olarak sunar.
-      - targets: ['bentoml:3000']
+      - targets: ['bentoml_production:3000', 'bentoml_canary:3000']

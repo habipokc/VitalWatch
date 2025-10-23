@@ -6,15 +6,15 @@ import pendulum
 from airflow.models.dag import DAG
 from airflow.operators.bash import BashOperator
 
-# Konteyner içindeki mutlak yol
 PROJECT_HOME = "/opt/airflow"
+MODEL_NAME = "isolation_forest_model"
 
 with DAG(
     dag_id="vitalwatch_data_pipeline",
     start_date=pendulum.datetime(2025, 10, 17, tz="UTC"),
     schedule=None,
     catchup=False,
-    tags=["vitalwatch", "data_pipeline", "training"],
+    tags=["vitalwatch", "data_pipeline", "training", "canary"],
 ) as dag:
 
     # Görev 1: Veri Simülatörünü Çalıştırma
@@ -29,17 +29,26 @@ with DAG(
         bash_command=f"python {PROJECT_HOME}/src/data_pipeline/feature_extractor.py",
     )
 
-    # ==========================================================
-    # ===== YENİ GÖREVİ BURAYA EKLİYORUZ =======================
-    # ==========================================================
     # Görev 3: Model Eğitim Script'ini Çalıştırma
     task_train_model = BashOperator(
         task_id="train_model",
         bash_command=f"python {PROJECT_HOME}/src/model_training/train.py",
     )
-    # ==========================================================
-    # ==========================================================
 
-    # Görevler Arasındaki Bağımlılığı Tanımlama
-    # Zinciri güncelliyoruz: Veri üret -> Özellik çıkar -> MODELİ EĞİT
-    task_generate_data >> task_extract_features >> task_train_model
+    # Görev 4: Yeni eğitilen modeli "Staging" aşamasına taşı
+    task_promote_to_staging = BashOperator(
+        task_id="promote_model_to_staging",
+        bash_command=(
+            f"python {PROJECT_HOME}/src/model_training/promote_model.py "
+            f"--model-name {MODEL_NAME} "
+            f"--stage Staging"
+        ),
+    )
+
+    # Görevler arasındaki bağımlılık zinciri
+    (
+        task_generate_data
+        >> task_extract_features
+        >> task_train_model
+        >> task_promote_to_staging
+    )

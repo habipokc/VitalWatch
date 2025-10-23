@@ -1,4 +1,4 @@
-# src/model_training/train.py
+import os  # <-- YENİ: Ortam değişkenlerini okumak için gerekli kütüphane
 
 import mlflow
 import mlflow.sklearn
@@ -6,9 +6,8 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.metrics import average_precision_score, roc_auc_score
 
-# MLflow sunucusunun konteyner içindeki adresini belirtiyoruz.
-# 'mlflow' servis adını docker-compose.yaml'dan alıyoruz.
-MLFLOW_TRACKING_URI = "http://mlflow:5000"
+# MLflow sunucu adresi artık sabit değil, ortam değişkeninden okunacak.
+# BU SATIRI SİLİYORUZ: MLFLOW_TRACKING_URI = "http://mlflow:5000"
 
 # İşlenmiş verinin tam yolu
 PROCESSED_DATA_PATH = "/opt/airflow/data/processed/featured_data.csv"
@@ -18,7 +17,11 @@ def train_model():
     print("Model eğitimi başlatılıyor...")
 
     # 1. MLflow ayarlarını yap
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    # YENİ: Ortam değişkeninden MLflow adresini oku.
+    # Bu değişkeni docker-compose.yml dosyasındaki x-airflow-common içinde tanımladık.
+    mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI")
+    mlflow.set_tracking_uri(mlflow_tracking_uri)
+
     mlflow.set_experiment("VitalWatch Anomaly Detection")
 
     # 2. Veriyi oku

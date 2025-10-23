@@ -1,5 +1,7 @@
-# src\monitoring\drift_detector.py
+# src/monitoring/drift_detector.py
+
 import os
+import sys  # <- Sinyal göndermek için bu kütüphaneyi ekliyoruz
 
 import pandas as pd
 from evidently import Report
@@ -7,46 +9,67 @@ from evidently.presets import DataDriftPreset
 
 PROJECT_HOME = "/opt/airflow"
 REFERENCE_DATA_PATH = os.path.join(
-    PROJECT_HOME, "reports/reference_data/reference_dataset.csv"
-)
-LIVE_DATA_PATH = os.path.join(PROJECT_HOME, "data/processed/featured_data.csv")
+    PROJECT_HOME, "data/processed/featured_data.csv"
+)  # Referansı en sonki başarılı veri yapalım
+LIVE_DATA_PATH = os.path.join(
+    PROJECT_HOME, "data/raw/simulated_data.csv"
+)  # Canlı veriyi yeni simüle edilen veri yapalım
 DRIFT_REPORT_PATH = os.path.join(PROJECT_HOME, "reports/data_drift_report.html")
+
+# --- ÖNEMLİ DEĞİŞİKLİK ---
+# Drift tespiti için canlı verinin de işlenmesi gerekir.
+# Bunun için feature_extractor'ı import edip kullanacağız.
+# Eğer bu import çalışmazsa, Airflow'un python path'inde bir sorun olabilir.
+# Ama docker-compose'da src klasörünü bağladığımız için çalışmalı.
+from data_pipeline.feature_extractor import extract_features
 
 
 def detect_data_drift():
     print("Veri sapması tespiti başlatılıyor...")
+
+    # Referans veri (işlenmiş)
     reference_data = pd.read_csv(REFERENCE_DATA_PATH)
-    live_data = pd.read_csv(LIVE_DATA_PATH)
+
+    # Canlı veri (ham)
+    live_raw_data = pd.read_csv(LIVE_DATA_PATH)
+    # Canlı veriyi, referans veriyle aynı formata getirmek için işliyoruz.
+    live_featured_data = extract_features(live_raw_data)
+
+    print(f"Referans veri satır sayısı: {len(reference_data)}")
+    print(f"Canlı (işlenmiş) veri satır sayısı: {len(live_featured_data)}")
+
     features = ["rolling_mean", "rolling_std"]
     reference_data_features = reference_data[features]
-    live_data_features = live_data[features]
+    live_data_features = live_featured_data[features]
 
-    print("Evidently AI Raporu ve Testleri oluşturuluyor...")
-
-    data_drift_report_and_tests = Report(
-        metrics=[DataDriftPreset()], include_tests=True
-    )
-
-    report_results = data_drift_report_and_tests.run(
+    print("Evidently AI Raporu oluşturuluyor...")
+    data_drift_report = Report(metrics=[DataDriftPreset()])
+    data_drift_report.run(
         reference_data=reference_data_features, current_data=live_data_features
     )
 
     os.makedirs(os.path.dirname(DRIFT_REPORT_PATH), exist_ok=True)
-    report_results.save_html(DRIFT_REPORT_PATH)
+    data_drift_report.save_html(DRIFT_REPORT_PATH)
     print(f"Veri sapması raporu başarıyla oluşturuldu: {DRIFT_REPORT_PATH}")
 
-    result_dict = report_results.dict()
+    # Rapor sonucunu analiz ederek drift olup olmadığına karar ver
+    report_dict = data_drift_report.as_dict()
+    drift_detected = report_dict["metrics"][0]["result"]["data_drift"]["data"][
+        "metrics"
+    ]["dataset_drift"]
 
-    # --- NİHAİ DÜZELTME ---
-    # 'tests' listesindeki her bir testin durumunu kontrol et.
-    # Eğer içlerinden herhangi birinin durumu 'FAIL' ise, drift_detected True olacak.
-    drift_detected = any(test["status"] == "FAIL" for test in result_dict["tests"])
-    print(f"Sapma tespit edildi mi? -> {drift_detected}")
+    print(f"Veri sapması tespit edildi mi? -> {drift_detected}")
 
     if drift_detected:
-        print("UYARI: Veri sapması tespit edildi!")
+        print(
+            "UYARI: Veri sapması tespit edildi! Airflow'a başarısızlık sinyali gönderiliyor."
+        )
+        sys.exit(1)  # Başarısızlık sinyali
     else:
-        print("Veri kalitesi kontrolü başarılı, sapma tespit edilmedi.")
+        print(
+            "Veri kalitesi kontrolü başarılı, sapma tespit edilmedi. Başarı sinyali gönderiliyor."
+        )
+        sys.exit(0)  # Başarı sinyali
 
 
 if __name__ == "__main__":
