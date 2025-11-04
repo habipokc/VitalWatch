@@ -11,5 +11,4 @@ WORKDIR /home/bentoml
 
 COPY src/model_serving/service.py .
 
-# DÜZELTME: VitalWatchService değil, svc kullan!
 ENTRYPOINT [ "bentoml", "serve", "service.py:svc", "--host", "0.0.0.0", "--port", "3000" ]

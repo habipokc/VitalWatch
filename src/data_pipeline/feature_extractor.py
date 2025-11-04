@@ -49,13 +49,10 @@ if __name__ == "__main__":
     os.makedirs(output_dir, exist_ok=True)  # Çıktı klasörü yoksa oluştur.
     output_path = os.path.join(output_dir, "featured_data.csv")
 
-    # Ham veriyi Pandas DataFrame olarak oku.
     raw_data_df = pd.read_csv(input_path)
 
-    # Özellikleri çıkarmak için fonksiyonumuzu çağır.
     featured_data_df = extract_features(raw_data_df)
 
-    # İşlenmiş veriyi yeni bir CSV dosyasına kaydet.
     featured_data_df.to_csv(output_path, index=False)
 
     print(

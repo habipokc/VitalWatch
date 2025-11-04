@@ -5,15 +5,15 @@ from __future__ import annotations
 import pendulum
 from airflow.models.dag import DAG
 from airflow.operators.bash import BashOperator
-from airflow.utils.trigger_rule import TriggerRule  # <- Bu satırı ekliyoruz
+from airflow.utils.trigger_rule import TriggerRule
 
 PROJECT_HOME = "/opt/airflow"
-MODEL_NAME = "isolation_forest_model"  # Model adını bir değişkene alalım
+MODEL_NAME = "isolation_forest_model"
 
 with DAG(
     dag_id="vitalwatch_model_monitoring",
     start_date=pendulum.datetime(2025, 10, 20, tz="UTC"),
-    schedule="0 * * * *",  # Her saat başı
+    schedule="0 * * * *",
     catchup=False,
     tags=["vitalwatch", "monitoring", "drift_detection", "rollback"],
 ) as dag:
@@ -33,7 +33,7 @@ with DAG(
             f"python {PROJECT_HOME}/src/model_training/rollback_model.py "
             f"--model-name {MODEL_NAME}"
         ),
-        trigger_rule=TriggerRule.ONE_FAILED,  # <- Büyü burada!
+        trigger_rule=TriggerRule.ONE_FAILED,
     )
 
     # Görevler arasındaki bağımlılığı tanımlıyoruz.

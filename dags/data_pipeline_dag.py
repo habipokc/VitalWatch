@@ -1,4 +1,4 @@
-# dags/data_pipeline_dag.py
+#  dags/data_pipeline_dag.py
 
 from __future__ import annotations
 

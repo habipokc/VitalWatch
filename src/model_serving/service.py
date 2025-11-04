@@ -1,5 +1,4 @@
 # src/model_serving/service.py
-# Canary Deployment Uyumlu - Dinamik Model Yükleme
 
 import os
 import traceback
@@ -96,9 +95,7 @@ def load_model_from_mlflow():
 
     except Exception as e:
         print(f"❌ Model yükleme sırasında detaylı hata oluştu: {e}")
-        # ===== BU SATIRI EKLE =====
         traceback.print_exc()
-        # ==========================
         model = None
         model_version = "none"
 

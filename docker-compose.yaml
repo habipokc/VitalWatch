@@ -76,7 +76,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ${AIRFLOW_PROJ_DIR:-.}/src:/opt/airflow/src # <--- BU SATIRI EKLE
+    - ${AIRFLOW_PROJ_DIR:-.}/src:/opt/airflow/src
     - ${AIRFLOW_PROJ_DIR:-.}/data:/opt/airflow/data
     - ${AIRFLOW_PROJ_DIR:-.}/reports:/opt/airflow/reports
   user: "${AIRFLOW_UID:-50000}:0"
@@ -248,8 +248,7 @@ services:
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}:/sources
 
-  # ===== YENİ MLFLOW SERVİSİNİ BURAYA EKLE ===============================================
-  # =======================================================================================
+  # =====  MLFLOW SERVİSİ ===============================================
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.14.1
     ports:
@@ -259,7 +258,7 @@ services:
     command: >
       mlflow server --host 0.0.0.0 --port 5000 --serve-artifacts
 
-  # ===== PROMETHEUS GÖZLEMCİSİ (GÜNCELLENDİ) =================================
+  # ===== PROMETHEUS  =================================
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -270,17 +269,16 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     depends_on:
-      - bentoml_production # Artık her ikisine de bağlı
+      - bentoml_production
       - bentoml_canary
 
-  # ===== GRAFANA GÖSTERGE PANELİ ========================================================
+  # ===== GRAFANA ========================================================
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3001:3000" # Grafana'nın arayüzüne bu porttan erişeceğiz (3000 dolu)
+      - "3001:3000"
     volumes:
-      # Grafana'nın oluşturduğu panoları kaybetmemek için kalıcı hale getiriyoruz
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
@@ -298,20 +296,20 @@ services:
       - -c
       - airflow
 
-  # ===== YENİ NGINX SERVİSİ ===================================================
+  # =====  NGINX  ===================================================
   nginx:
     image: nginx:latest
     container_name: nginx_gateway
     volumes:
-      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro # Konfigürasyon dosyasını bağlıyoruz
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "3000:80" # Dışarıdan gelen 3000 isteğini Nginx'in 80 portuna yönlendiriyoruz
+      - "3000:80"
     depends_on:
       - bentoml_production
       - bentoml_canary
     restart: always
 
-  # ===== BENTOML SERVİSLERİ (İKİYE AYRILDI) =================================
+  # ===== BENTOML SERVİSLERİ  =================================
   bentoml_production:
     build:
       context: .
@@ -320,7 +318,7 @@ services:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       # Bu servis HER ZAMAN 'Production' etiketli modeli yükleyecek
       - BENTOML_MODEL_TAG=models:/isolation_forest_model/Production
-    # Artık portu dışarıya açmıyoruz, sadece Nginx erişecek
+
     expose:
       - "3000"
     volumes:
@@ -335,7 +333,6 @@ services:
       dockerfile: ./src/model_serving/Dockerfile.bentoml
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
-      # Bu servis ise YENİ modelin olduğu 'Staging' etiketini yükleyecek
       - BENTOML_MODEL_TAG=models:/isolation_forest_model/Staging
     expose:
       - "3000"
@@ -369,6 +366,6 @@ services:
 
 volumes:
   postgres-db-volume:
-  bentoml-data-prod: # Her servis için ayrı bir volume
+  bentoml-data-prod:
   bentoml-data-canary:
   grafana-data:

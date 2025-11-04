@@ -6,11 +6,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-# --- 1. GİRİŞ: Kütüphaneleri ve Temel Ayarları Tanımlama ---
-# NumPy ve Pandas'ı projemize dahil ediyoruz.
-# os: İşletim sistemiyle ilgili işlemler (dosya yolu oluşturma gibi) için.
-# datetime, timedelta: Zaman damgaları oluşturmak için.
-
 
 def generate_time_series_data(
     start_time_str: str,
@@ -77,22 +72,17 @@ def generate_time_series_data(
 
 
 # --- 6. SCRIPT'İ ÇALIŞTIRILABİLİR HALE GETİRME ---
-# Bu özel blok (if __name__ == "__main__":), bu script'i doğrudan
-# terminalden `python simulator.py` komutuyla çalıştırdığımızda devreye girer.
-# Bu, kodun test edilmesini ve yeniden kullanılmasını kolaylaştırır.
+
 if __name__ == "__main__":
     print("Veri simülasyonu başlatılıyor...")
 
-    # Veriyi `data/raw` klasörüne kaydedeceğiz.
     output_dir = "/opt/airflow/data/raw"
 
-    os.makedirs(output_dir, exist_ok=True)  # Klasör yoksa oluştur.
+    os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "simulated_data.csv")
 
-    # Fonksiyonumuzu çağırarak veriyi üretiyoruz.
     simulated_data = generate_time_series_data(start_time_str="2025-10-17 12:00:00")
 
-    # Üretilen DataFrame'i CSV dosyasına kaydediyoruz. index=False önemlidir.
     simulated_data.to_csv(output_path, index=False)
 
     print(

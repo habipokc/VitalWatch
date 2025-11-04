@@ -1,38 +1,27 @@
 # src/monitoring/drift_detector.py
 
 import os
-import sys  # <- Sinyal göndermek için bu kütüphaneyi ekliyoruz
+import sys
 
 import pandas as pd
 from evidently import Report
 from evidently.presets import DataDriftPreset
 
 PROJECT_HOME = "/opt/airflow"
-REFERENCE_DATA_PATH = os.path.join(
-    PROJECT_HOME, "data/processed/featured_data.csv"
-)  # Referansı en sonki başarılı veri yapalım
-LIVE_DATA_PATH = os.path.join(
-    PROJECT_HOME, "data/raw/simulated_data.csv"
-)  # Canlı veriyi yeni simüle edilen veri yapalım
+REFERENCE_DATA_PATH = os.path.join(PROJECT_HOME, "data/processed/featured_data.csv")
+LIVE_DATA_PATH = os.path.join(PROJECT_HOME, "data/raw/simulated_data.csv")
 DRIFT_REPORT_PATH = os.path.join(PROJECT_HOME, "reports/data_drift_report.html")
 
-# --- ÖNEMLİ DEĞİŞİKLİK ---
-# Drift tespiti için canlı verinin de işlenmesi gerekir.
-# Bunun için feature_extractor'ı import edip kullanacağız.
-# Eğer bu import çalışmazsa, Airflow'un python path'inde bir sorun olabilir.
-# Ama docker-compose'da src klasörünü bağladığımız için çalışmalı.
+
 from data_pipeline.feature_extractor import extract_features
 
 
 def detect_data_drift():
     print("Veri sapması tespiti başlatılıyor...")
 
-    # Referans veri (işlenmiş)
     reference_data = pd.read_csv(REFERENCE_DATA_PATH)
 
-    # Canlı veri (ham)
     live_raw_data = pd.read_csv(LIVE_DATA_PATH)
-    # Canlı veriyi, referans veriyle aynı formata getirmek için işliyoruz.
     live_featured_data = extract_features(live_raw_data)
 
     print(f"Referans veri satır sayısı: {len(reference_data)}")
@@ -52,7 +41,6 @@ def detect_data_drift():
     data_drift_report.save_html(DRIFT_REPORT_PATH)
     print(f"Veri sapması raporu başarıyla oluşturuldu: {DRIFT_REPORT_PATH}")
 
-    # Rapor sonucunu analiz ederek drift olup olmadığına karar ver
     report_dict = data_drift_report.as_dict()
     drift_detected = report_dict["metrics"][0]["result"]["data_drift"]["data"][
         "metrics"
@@ -64,12 +52,12 @@ def detect_data_drift():
         print(
             "UYARI: Veri sapması tespit edildi! Airflow'a başarısızlık sinyali gönderiliyor."
         )
-        sys.exit(1)  # Başarısızlık sinyali
+        sys.exit(1)
     else:
         print(
             "Veri kalitesi kontrolü başarılı, sapma tespit edilmedi. Başarı sinyali gönderiliyor."
         )
-        sys.exit(0)  # Başarı sinyali
+        sys.exit(0)
 
 
 if __name__ == "__main__":
